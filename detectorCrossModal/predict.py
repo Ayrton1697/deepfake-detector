@@ -1,20 +1,35 @@
 import os
 import time
 import torch
+import torchvision.transforms.functional as TF
+
 import ffmpeg
 import cv2
 import librosa
 import numpy as np
-import speech_recognition as sr
-from transformers import RobertaTokenizer, RobertaModel
-from model import MultiModalModel, CrossModalAttention
-from aux_features import compute_aux_features
+# import speech_recognition as sr
+# from transformers import RobertaTokenizer, RobertaModel
+# from model import MultiModalModel, CrossModalAttention
+# from aux_features import compute_aux_features
 import logging
+
+from PIL import Image
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+def analyze_with_fft2(image_path):
+    im = Image.open(image_path).convert('L')
+
+    pixel_tensor = TF.to_tensor(im).squeeze(0)
+
+    answer = torch.fft.fft2(pixel_tensor)
+    pixel_magnitude = torch.abs(answer)
+    magnitude_spectrum = torch.log(1 + pixel_magnitude)
+    print(pixel_magnitude)
+    return answer
 
 def load_model_and_tokenizer(model_dir, tokenizer_dir, device):
     text_model = RobertaModel.from_pretrained(os.path.join(model_dir, 'text_model'))
@@ -215,14 +230,22 @@ def predict(video_path, model, tokenizer, device, frame_interval=30, max_frames=
     return "Deepfake" if prediction == 1 else "Genuine"
 
 
+# if __name__ == "__main__":
+#     import sys
+
+#     video_path = sys.argv[1]
+#     model_dir = "model"
+#     tokenizer_dir = "tokenizer"
+#     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+#     model, tokenizer = load_model_and_tokenizer(model_dir, tokenizer_dir, device)
+#     result = predict(video_path, model, tokenizer, device)
+#     print(f"The video is predicted to be: {result}")
+
+
 if __name__ == "__main__":
     import sys
 
-    video_path = sys.argv[1]
-    model_dir = "model"
-    tokenizer_dir = "tokenizer"
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    model, tokenizer = load_model_and_tokenizer(model_dir, tokenizer_dir, device)
-    result = predict(video_path, model, tokenizer, device)
-    print(f"The video is predicted to be: {result}")
+    image_path = r"E:\ayrto\verifai\detector\detectorCrossModal\images.jfif"
+    result = analyze_with_fft2(image_path)
+    # print(f"The image is predicted to be: {result}")
